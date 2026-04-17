@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { collection, addDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { db } from './firebase';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { db } from './firebase'; 
 import './index.css';
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
   const [regData, setRegData] = useState([]);
   const [progress, setProgress] = useState(0);
   
-  // Manual Control States
+  // Display Toggle States
   const [isTempActive, setIsTempActive] = useState(false);
   const [isRegActive, setIsRegActive] = useState(false);
   const [isSysActive, setIsSysActive] = useState(false);
@@ -21,78 +21,47 @@ function App() {
   const [showWarning, setShowWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // 1. LISTEN TO FIREBASE
+  // LISTEN TO FIREBASE (ALL REAL DATA FROM RASPBERRY PI)
   useEffect(() => {
+    // 1. Listen for Temperature Updates
     const tempQuery = query(collection(db, 'temperatureLogs'), orderBy('timestamp', 'desc'), limit(6));
     const unsubscribeTemp = onSnapshot(tempQuery, (snapshot) => {
       const logs = snapshot.docs.map(doc => doc.data());
       setTempData(logs);
-      if (logs.length > 0 && logs[0].temp > 170 && !showWarning) {
+      if (logs.length > 0 && logs[0].temp > 170) {
         setShowWarning(true);
       }
     });
 
+    // 2. Listen for Regulation Updates
     const regQuery = query(collection(db, 'regulationLogs'), orderBy('timestamp', 'desc'), limit(6));
     const unsubscribeReg = onSnapshot(regQuery, (snapshot) => {
       setRegData(snapshot.docs.map(doc => doc.data()));
     });
 
+    // 3. Listen for System Progress Updates
+    const sysQuery = query(collection(db, 'systemLogs'), orderBy('timestamp', 'desc'), limit(1));
+    const unsubscribeSys = onSnapshot(sysQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const latestData = snapshot.docs[0].data();
+        setProgress(latestData.progress);
+        
+        // Trigger success modal when hardware reports 100%
+        if (latestData.progress >= 100) {
+          setShowSuccess(true);
+        }
+      }
+    });
+
+    // Cleanup listeners
     return () => {
       unsubscribeTemp();
       unsubscribeReg();
+      unsubscribeSys();
     };
-  }, []);
+  }, []); 
 
-  // 2. SIMULATE & WRITE BASED ON MANUAL CONTROLS
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const now = new Date();
-      const formattedTime = now.toLocaleTimeString();
-      const timestamp = now.getTime();
-      
-      const tempBase = 150;
-      const newTemp = Math.random() > 0.9 ? 172 + Math.floor(Math.random() * 5) : tempBase + Math.floor(Math.random() * 15 - 7);
-
-      try {
-        // Only write temperature if active
-        if (isTempActive) {
-          await addDoc(collection(db, 'temperatureLogs'), {
-            time: formattedTime, timestamp, temp: newTemp
-          });
-        }
-
-        // Only write regulation if active
-        if (isRegActive) {
-          const moisture = (5 + Math.random() - 0.5).toFixed(1);
-          const ph = (6.0 + (Math.random() * 0.4 - 0.2)).toFixed(1);
-          await addDoc(collection(db, 'regulationLogs'), {
-            time: formattedTime, timestamp, moisture, ph, temp: newTemp
-          });
-        }
-      } catch (error) {
-        console.error("Firebase write error:", error);
-      }
-
-      // Only increment progress if active
-      if (isSysActive && progress < 100) {
-        setProgress(p => {
-          const next = p + Math.floor(Math.random() * 10) + 2;
-          if (next >= 100 && !showSuccess) {
-            setShowSuccess(true);
-            setIsSysActive(false); // Auto-stop when finished
-            return 100;
-          }
-          return next > 100 ? 100 : next;
-        });
-      }
-
-    }, 3000); // Runs every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [isTempActive, isRegActive, isSysActive, progress]);
-
-
-  // 3. RENDER THE MAIN CONTENT AREA
+  // RENDER THE MAIN CONTENT AREA
   const renderContent = () => {
     switch (view) {
       case 'home':
@@ -102,7 +71,7 @@ function App() {
             <h1>Welcome to CashewTrack</h1>
             <p style={{fontSize: '18px', color: '#666', lineHeight: '1.6'}}>
               Use the sidebar menu to navigate through the administrative dashboard.<br/>
-              <b>Note:</b> You must manually start the monitoring processes inside each specific tab.
+              <b>Note:</b> You must manually start the monitoring views to see incoming live data from the Raspberry Pi.
             </p>
           </div>
         );
@@ -116,23 +85,25 @@ function App() {
                 className={`btn ${isTempActive ? 'btn-danger' : ''}`}
                 onClick={() => setIsTempActive(!isTempActive)}
               >
-                {isTempActive ? '⏹ Stop Monitoring' : '▶ Start Monitoring'}
+                {isTempActive ? '⏹ Stop Viewing' : '▶ Start Viewing Live Data'}
               </button>
             </div>
             
-            {!isTempActive && tempData.length === 0 && <p>System idle. Press Start to begin reading sensor data.</p>}
+            {!isTempActive && <p>Display paused. Press Start to view incoming sensor data from the Pi.</p>}
             
-            <table>
-              <thead><tr><th>Timestamp</th><th>Temperature (°C)</th></tr></thead>
-              <tbody>
-                {tempData.map((d, i) => (
-                  <tr key={i} className={d.temp > 170 ? 'danger-row' : ''}>
-                    <td>{d.time}</td>
-                    <td>{d.temp}°C</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {isTempActive && (
+              <table>
+                <thead><tr><th>Timestamp</th><th>Temperature (°C)</th></tr></thead>
+                <tbody>
+                  {tempData.map((d, i) => (
+                    <tr key={i} className={d.temp > 170 ? 'danger-row' : ''}>
+                      <td>{d.time}</td>
+                      <td>{d.temp}°C</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         );
         
@@ -145,22 +116,24 @@ function App() {
                 className={`btn ${isRegActive ? 'btn-danger' : ''}`}
                 onClick={() => setIsRegActive(!isRegActive)}
               >
-                {isRegActive ? '⏹ Stop Regulation' : '▶ Start Regulation'}
+                {isRegActive ? '⏹ Stop Viewing' : '▶ Start Viewing Live Data'}
               </button>
             </div>
             
-            {!isRegActive && regData.length === 0 && <p>System idle. Press Start to begin regulation process.</p>}
+            {!isRegActive && <p>Display paused. Press Start to view incoming sensor data from the Pi.</p>}
 
-            <table>
-              <thead><tr><th>Time</th><th>Moisture</th><th>pH</th><th>Temp</th></tr></thead>
-              <tbody>
-                {regData.map((d, i) => (
-                  <tr key={i}>
-                    <td>{d.time}</td><td>{d.moisture}%</td><td>{d.ph}</td><td>{d.temp}°C</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {isRegActive && (
+              <table>
+                <thead><tr><th>Time</th><th>Moisture</th><th>pH</th><th>Temp</th></tr></thead>
+                <tbody>
+                  {regData.map((d, i) => (
+                    <tr key={i}>
+                      <td>{d.time}</td><td>{d.moisture}%</td><td>{d.ph}</td><td>{d.temp}°C</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         );
         
@@ -170,26 +143,29 @@ function App() {
             <div className="header-controls">
               <h2>⚙️ System Status</h2>
               <button 
-                className={`btn ${isSysActive ? 'btn-warning' : ''}`}
-                onClick={() => {
-                  if(progress === 100) setProgress(0); // Reset if already finished
-                  setIsSysActive(!isSysActive);
-                }}
+                className={`btn ${isSysActive ? 'btn-danger' : ''}`}
+                onClick={() => setIsSysActive(!isSysActive)}
               >
-                {isSysActive ? '⏸ Pause Processing' : '▶ Start Processing'}
+                {isSysActive ? '⏹ Stop Viewing' : '▶ View Live Progress'}
               </button>
             </div>
             
-            <div style={{textAlign: 'center', margin: '40px 0'}}>
-              <h1 style={{fontSize: '48px', margin: '0'}}>{progress}%</h1>
-              <h3 style={{color: '#666'}}>
-                {progress === 100 ? 'COMPLETED' : isSysActive ? 'PROCESSING...' : 'IDLE'}
-              </h3>
-            </div>
-            
-            <div className="progress-container">
-              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-            </div>
+            {!isSysActive && <p>Display paused. Press Start to view the live extraction progress from the Pi.</p>}
+
+            {isSysActive && (
+              <>
+                <div style={{textAlign: 'center', margin: '40px 0'}}>
+                  <h1 style={{fontSize: '48px', margin: '0'}}>{progress}%</h1>
+                  <h3 style={{color: '#666'}}>
+                    {progress >= 100 ? 'COMPLETED' : 'PROCESSING...'}
+                  </h3>
+                </div>
+                
+                <div className="progress-container">
+                  <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                </div>
+              </>
+            )}
           </div>
         );
       default: return null;
@@ -244,7 +220,7 @@ function App() {
             <div className="icon">✅</div>
             <h2 style={{color: 'green'}}>CONGRATULATIONS</h2>
             <p>Extraction process finished successfully.</p>
-            <button className="btn" style={{width: '100%'}} onClick={() => {setShowSuccess(false);}}>Close</button>
+            <button className="btn" style={{width: '100%'}} onClick={() => setShowSuccess(false)}>Close</button>
           </div>
         </div>
       )}
