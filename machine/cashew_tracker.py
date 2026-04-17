@@ -4,51 +4,56 @@ from firebase_admin import firestore
 import time
 from datetime import datetime
 
-# 1. Connect to Firebase using your downloaded JSON key
-# REPLACE 'your-firebase-adminsdk.json' with the actual filename
+# Connect to Firebase using your downloaded JSON key
+# IMPORTANT: Make sure this filename matches your actual downloaded key!
 cred = credentials.Certificate('your-firebase-adminsdk.json')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
-
-print("Connected to Firebase! Starting sensor stream...")
+print("Connected to Firebase! Starting sensor and progress stream...")
 
 def read_temperature_sensor():
-    # TODO: Replace this with your actual sensor code (e.g., MLX90614, MAX6675)
-    # For now, it returns a hardcoded value so you can test the connection
+    # Replace with your actual sensor code
     return 155.5 
 
 def read_moisture_sensor():
-    # TODO: Replace with your actual moisture sensor code
+    # Replace with your actual sensor code
     return 5.2
 
 def read_ph_sensor():
-    # TODO: Replace with your actual pH sensor code
+    # Replace with your actual sensor code
     return 6.1
+
+# Initialize our physical extraction progress tracker
+extraction_progress = 0
 
 try:
     while True:
-        # Get current time formatted exactly how React expects it
         now = datetime.now()
         formatted_time = now.strftime("%I:%M:%S %p")
-        # React expects a Javascript Unix timestamp (milliseconds)
         unix_timestamp = int(time.time() * 1000)
 
-        # Read your hardware sensors
+        # 1. Calculate new progress (Increments by 5% every loop for testing)
+        if extraction_progress < 100:
+            extraction_progress += 5
+            if extraction_progress > 100:
+                extraction_progress = 100
+
+        # 2. Read hardware sensors
         current_temp = read_temperature_sensor()
         current_moisture = read_moisture_sensor()
         current_ph = read_ph_sensor()
 
-        print(f"[{formatted_time}] Sending Temp: {current_temp}°C")
+        print(f"[{formatted_time}] Temp: {current_temp}°C | Progress: {extraction_progress}%")
 
-        # 2. Push Temperature Data to Firebase
+        # 3. Push Temperature Data
         db.collection('temperatureLogs').add({
             'time': formatted_time,
             'timestamp': unix_timestamp,
             'temp': current_temp
         })
 
-        # 3. Push Regulation Data to Firebase
+        # 4. Push Regulation Data
         db.collection('regulationLogs').add({
             'time': formatted_time,
             'timestamp': unix_timestamp,
@@ -57,7 +62,14 @@ try:
             'temp': current_temp
         })
 
-        # Wait 3 seconds before sending the next reading
+        # 5. Push System Progress Data
+        db.collection('systemLogs').add({
+            'time': formatted_time,
+            'timestamp': unix_timestamp,
+            'progress': extraction_progress
+        })
+
+        # Wait 3 seconds before the next reading
         time.sleep(3)
 
 except KeyboardInterrupt:
