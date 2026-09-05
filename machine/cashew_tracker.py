@@ -10,22 +10,27 @@ cred = credentials.Certificate('your-firebase-adminsdk.json')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
-print("Connected to Firebase! Starting sensor and progress stream...")
+print("Connected to Firebase! Starting sensor and conditioning progress stream...")
 
 def read_temperature_sensor():
-    # Replace with your actual sensor code
+    # Replace with your actual MLX90614 sensor code
     return 155.5 
 
 def read_moisture_sensor():
-    # Replace with your actual sensor code
-    return 5.2
+    # Replace with your actual sensor code (set to 45.2% to test nominal range)
+    return 45.2
 
 def read_ph_sensor():
-    # Replace with your actual sensor code
-    return 6.1
+    # Replace with your actual sensor code (set to 6.8 to test nominal range)
+    return 6.8
 
-# Initialize our physical extraction progress tracker
-extraction_progress = 0
+def read_current_sensor():
+    # Replace with your actual ACS712 sensor code
+    # Returning a nominal current of 2.4A for testing
+    return 2.4
+
+# Initialize our physical conditioning progress tracker
+conditioning_progress = 0
 
 try:
     while True:
@@ -34,17 +39,18 @@ try:
         unix_timestamp = int(time.time() * 1000)
 
         # 1. Calculate new progress (Increments by 5% every loop for testing)
-        if extraction_progress < 100:
-            extraction_progress += 5
-            if extraction_progress > 100:
-                extraction_progress = 100
+        if conditioning_progress < 100:
+            conditioning_progress += 5
+            if conditioning_progress > 100:
+                conditioning_progress = 100
 
         # 2. Read hardware sensors
         current_temp = read_temperature_sensor()
         current_moisture = read_moisture_sensor()
         current_ph = read_ph_sensor()
+        current_amp = read_current_sensor() # Added current sensor reading
 
-        print(f"[{formatted_time}] Temp: {current_temp}°C | Progress: {extraction_progress}%")
+        print(f"[{formatted_time}] Temp: {current_temp}°C | Current: {current_amp}A | Progress: {conditioning_progress}%")
 
         # 3. Push Temperature Data
         db.collection('temperatureLogs').add({
@@ -53,20 +59,21 @@ try:
             'temp': current_temp
         })
 
-        # 4. Push Regulation Data
+        # 4. Push Regulation Data (Now with current!)
         db.collection('regulationLogs').add({
             'time': formatted_time,
             'timestamp': unix_timestamp,
             'moisture': current_moisture,
             'ph': current_ph,
-            'temp': current_temp
+            'temp': current_temp,
+            'current': current_amp # Pushing the ACS712 reading
         })
 
         # 5. Push System Progress Data
         db.collection('systemLogs').add({
             'time': formatted_time,
             'timestamp': unix_timestamp,
-            'progress': extraction_progress
+            'progress': conditioning_progress
         })
 
         # Wait 3 seconds before the next reading
