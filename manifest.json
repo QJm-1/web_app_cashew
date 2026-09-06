@@ -1,0 +1,18 @@
+{
+  "background_color": "#f9f6f0",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "web-app-cashew.vercel",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "web-app-cashew.vercel",
+  "start_url": "/",
+  "theme_color": "#2e7d32",
+  "id": "com.cashewtrack.app",
+  "description": "IoT Driven monitoring dashboard for CNSL extraction and bio-fertilizer conditioning.",
+  "lang": "en",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ]
+}
