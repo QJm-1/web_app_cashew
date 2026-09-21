@@ -6,6 +6,7 @@ import './index.css';
 
 function App() {
   const [view, setView] = useState('home');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Data States
   const [tempData, setTempData] = useState([]);
@@ -56,14 +57,18 @@ function App() {
     };
   }, []); 
 
+  // Navigation Handler
+  const handleNavigation = (newView) => {
+    setView(newView);
+    setIsSidebarOpen(false); 
+  };
+
   // RENDER THE MAIN CONTENT AREA
   const renderContent = () => {
     switch (view) {
       case 'home':
         return (
-          /* FIX: Added margin and padding so the white card doesn't edge the screen */
-          <div className="card" style={{ textAlign: 'center', margin: '5vh 20px', padding: '30px', borderRadius: '12px' }}>
-            {/* FIX: Centered the picture/icon layout */}
+          <div className="card" style={{ textAlign: 'center', marginTop: '5vh', padding: '30px', borderRadius: '12px' }}>
             <div className="icon" style={{ fontSize: '60px', display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>🌰</div>
             <h1 style={{ marginBottom: '15px' }}>Welcome to CashewTrack</h1>
             <p style={{fontSize: '18px', color: '#666', lineHeight: '1.6'}}>
@@ -75,7 +80,7 @@ function App() {
         
       case 'temperature':
         return (
-          <div className="card" style={{ margin: '20px' }}>
+          <div className="card">
             <div className="header-controls">
               <h2>🌡️ Temperature Monitoring</h2>
               <button 
@@ -106,7 +111,7 @@ function App() {
         
       case 'regulation':
         return (
-          <div className="card" style={{ margin: '20px' }}>
+          <div className="card">
             <div className="header-controls">
               <h2>💧 Regulation Status</h2>
               <button 
@@ -136,7 +141,7 @@ function App() {
         
       case 'system':
         return (
-          <div className="card" style={{ margin: '20px' }}>
+          <div className="card">
             <div className="header-controls">
               <h2>⚙️ System Status</h2>
               <button 
@@ -171,38 +176,46 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* SIDEBAR NAVIGATION - FIX: Added uniform green theme and centered alignment */}
-      <div className="sidebar" style={{ backgroundColor: '#2E7D32', borderRight: 'none' }}>
-        <div className="sidebar-header" style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            textAlign: 'center',
-            backgroundColor: '#2E7D32',
-            padding: '20px 10px',
-            color: 'white'
-          }}>
+      
+      {/* MOBILE TOP BAR */}
+      <div className="mobile-top-bar">
+        <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+          ☰ Menu
+        </button>
+        <div className="mobile-top-title">🌰 CashewTrack</div>
+      </div>
+
+      {/* OVERLAY */}
+      {isSidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      {/* SIDEBAR NAVIGATION */}
+      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
+
+        <div className="sidebar-header">
           <div style={{fontSize: '50px', marginBottom: '10px'}}>🌰</div>
           <h2 style={{ margin: '0', color: 'white' }}>CashewTrack</h2>
           <span style={{fontSize: '12px', color: '#E8F5E9'}}>Admin Console</span>
         </div>
         
-        <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>
+        <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => handleNavigation('home')}>
           🏠 Dashboard Home
         </button>
-        <button className={`nav-btn ${view === 'temperature' ? 'active' : ''}`} onClick={() => setView('temperature')}>
+        <button className={`nav-btn ${view === 'temperature' ? 'active' : ''}`} onClick={() => handleNavigation('temperature')}>
           🌡️ Temperature
         </button>
-        <button className={`nav-btn ${view === 'regulation' ? 'active' : ''}`} onClick={() => setView('regulation')}>
+        <button className={`nav-btn ${view === 'regulation' ? 'active' : ''}`} onClick={() => handleNavigation('regulation')}>
           💧 Regulation Status
         </button>
-        <button className={`nav-btn ${view === 'system' ? 'active' : ''}`} onClick={() => setView('system')}>
+        <button className={`nav-btn ${view === 'system' ? 'active' : ''}`} onClick={() => handleNavigation('system')}>
           ⚙️ System Status
         </button>
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="main-content" style={{ backgroundColor: '#F9F6F0', minHeight: '100vh' }}>
+      <div className="main-content">
         {renderContent()}
       </div>
 
@@ -224,7 +237,7 @@ function App() {
           <div className="modal">
             <div className="icon">✅</div>
             <h2 style={{color: 'green'}}>CONGRATULATIONS</h2>
-            <p>Extraction process finished successfully.</p>
+            <p>Conditioning process finished successfully.</p>
             <button className="btn" style={{width: '100%'}} onClick={() => setShowSuccess(false)}>Close</button>
           </div>
         </div>

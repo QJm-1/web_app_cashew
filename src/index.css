@@ -36,15 +36,13 @@ body {
 }
 
 .sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   margin-bottom: 20px;
-}
-
-.sidebar-header h2 {
-  color: white;
-  margin: 10px 0 0 0;
 }
 
 .nav-btn {
@@ -85,9 +83,10 @@ body {
   width: 100%;
   max-width: 800px;
   box-sizing: border-box; 
+  margin-bottom: 20px;
 }
 
-h1, h2, h3 { color: var(--dark-green); }
+h1, h2, h3 { color: var(--dark-green); margin-top: 0; }
 
 .btn {
   background-color: var(--primary-green);
@@ -148,6 +147,8 @@ th {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 /* Modals */
@@ -172,38 +173,42 @@ th {
 
 @media (max-width: 768px) {
   
-  /* Show the top bar with Hamburger Menu */
+  /* Top Navigation Bar */
   .mobile-top-bar {
     display: flex;
     background-color: var(--dark-green);
     color: white;
-    padding: 15px 20px;
+    height: 60px;
     align-items: center;
-    justify-content: space-between;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 900;
-    box-sizing: border-box;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }
 
-  .mobile-top-bar h2 {
-    color: white;
-    margin: 0;
-    font-size: 20px;
-  }
-
-  .hamburger-btn {
+  /* Hamburger Button */
+  .mobile-menu-btn {
     background: none;
     border: none;
     color: white;
-    font-size: 24px;
+    font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    padding: 0;
+    padding: 0 20px;
+    height: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
+  }
+
+  /* Centered Header Title */
+  .mobile-top-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: bold;
   }
 
   /* Slide the sidebar off-screen by default */
@@ -212,12 +217,12 @@ th {
     box-shadow: 4px 0 15px rgba(0,0,0,0.3);
   }
 
-  /* Slide it back in when the .open class is active */
+  /* Slide it back in when active */
   .sidebar.open {
     transform: translateX(0);
   }
 
-  /* Show the close button inside the sidebar */
+  /* Close Button inside Sidebar */
   .close-sidebar-btn {
     display: block;
     background: none;
@@ -239,11 +244,15 @@ th {
     z-index: 998;
   }
 
-  /* Adjust main content to sit below the new top bar */
+  /* Adjust main content layout */
   .main-content {
     margin-left: 0; 
-    padding-top: 90px; /* Space for the top bar */
-    padding-left: 20px;   
-    padding-right: 20px;
+    padding-top: 80px; /* Space for the top bar */
+    padding-left: 15px;   
+    padding-right: 15px;
+  }
+
+  .card {
+    padding: 20px;
   }
 }
