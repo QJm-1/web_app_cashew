@@ -21,6 +21,7 @@ body {
   min-height: 100vh;
 }
 
+/* Base Sidebar Styles */
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--dark-green);
@@ -30,6 +31,8 @@ body {
   padding: 20px 0;
   position: fixed;
   height: 100%;
+  z-index: 1000;
+  transition: transform 0.3s ease-in-out;
 }
 
 .sidebar-header {
@@ -45,9 +48,9 @@ body {
 }
 
 .nav-btn {
-  background: none;
+  background: transparent;
   border: none;
-  color: rgba(255,255,255,0.7);
+  color: white;
   padding: 15px 20px;
   text-align: left;
   font-size: 16px;
@@ -57,13 +60,11 @@ body {
 }
 
 .nav-btn:hover {
-  background-color: rgba(255,255,255,0.1);
-  color: white;
+  background-color: #1B5E20;
 }
 
 .nav-btn.active {
-  background-color: rgba(255,255,255,0.2);
-  color: white;
+  background-color: #1B5E20;
   border-left: 4px solid var(--primary-green);
 }
 
@@ -81,8 +82,9 @@ body {
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  margin-top: 20px;
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box; 
 }
 
 h1, h2, h3 { color: var(--dark-green); }
@@ -100,12 +102,8 @@ h1, h2, h3 { color: var(--dark-green); }
 }
 
 .btn:hover { background-color: #3d8b40; }
-
 .btn-danger { background-color: var(--danger-red); }
 .btn-danger:hover { background-color: #d32f2f; }
-
-.btn-warning { background-color: var(--warning-orange); color: white;}
-.btn-warning:hover { background-color: #f57c00; }
 
 table {
   width: 100%;
@@ -158,14 +156,94 @@ th {
   background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .modal {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 300px;
+  background: white; padding: 30px; border-radius: 12px; text-align: center; max-width: 350px;
 }
+.icon { font-size: 48px; margin-bottom: 10px; }
 
-.icon {
-  font-size: 48px;
-  margin-bottom: 10px;
+
+/* =========================================
+   📱 MOBILE RESPONSIVE DESIGN (Slide-Out Menu)
+   ========================================= */
+
+/* Hide mobile-specific elements on desktop */
+.mobile-top-bar { display: none; }
+.sidebar-overlay { display: none; }
+.close-sidebar-btn { display: none; }
+
+@media (max-width: 768px) {
+  
+  /* Show the top bar with Hamburger Menu */
+  .mobile-top-bar {
+    display: flex;
+    background-color: var(--dark-green);
+    color: white;
+    padding: 15px 20px;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 900;
+    box-sizing: border-box;
+  }
+
+  .mobile-top-bar h2 {
+    color: white;
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Slide the sidebar off-screen by default */
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+  }
+
+  /* Slide it back in when the .open class is active */
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Show the close button inside the sidebar */
+  .close-sidebar-btn {
+    display: block;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    cursor: pointer;
+  }
+
+  /* Dim the background when sidebar is open */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+  }
+
+  /* Adjust main content to sit below the new top bar */
+  .main-content {
+    margin-left: 0; 
+    padding-top: 90px; /* Space for the top bar */
+    padding-left: 20px;   
+    padding-right: 20px;
+  }
 }
