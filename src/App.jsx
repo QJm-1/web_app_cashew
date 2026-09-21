@@ -1,146 +1,168 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { collection, addDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { db } from './firebase';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { db } from './firebase'; 
 import './index.css';
 
 function App() {
-  const [view, setView] = useState('landing');
+  const [view, setView] = useState('home');
+  
+  // Data States
   const [tempData, setTempData] = useState([]);
   const [regData, setRegData] = useState([]);
   const [progress, setProgress] = useState(0);
+  
+  // Display Toggle States
+  const [isTempActive, setIsTempActive] = useState(false);
+  const [isRegActive, setIsRegActive] = useState(false);
+  const [isSysActive, setIsSysActive] = useState(false);
+
+  // Alert States
   const [showWarning, setShowWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Listen to Firebase Real-time Updates
+  // LISTEN TO FIREBASE
   useEffect(() => {
-    const tempQuery = query(collection(db, 'temperatureLogs'), orderBy('timestamp', 'desc'), limit(5));
+    const tempQuery = query(collection(db, 'temperatureLogs'), orderBy('timestamp', 'desc'), limit(6));
     const unsubscribeTemp = onSnapshot(tempQuery, (snapshot) => {
       const logs = snapshot.docs.map(doc => doc.data());
       setTempData(logs);
-      if (logs.length > 0 && logs[0].temp > 170 && !showWarning) {
+      if (logs.length > 0 && logs[0].temp > 170) {
         setShowWarning(true);
       }
     });
 
-    const regQuery = query(collection(db, 'regulationLogs'), orderBy('timestamp', 'desc'), limit(5));
+    const regQuery = query(collection(db, 'regulationLogs'), orderBy('timestamp', 'desc'), limit(6));
     const unsubscribeReg = onSnapshot(regQuery, (snapshot) => {
       setRegData(snapshot.docs.map(doc => doc.data()));
+    });
+
+    const sysQuery = query(collection(db, 'systemLogs'), orderBy('timestamp', 'desc'), limit(1));
+    const unsubscribeSys = onSnapshot(sysQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const latestData = snapshot.docs[0].data();
+        setProgress(latestData.progress);
+        
+        if (latestData.progress >= 100) {
+          setShowSuccess(true);
+        }
+      }
     });
 
     return () => {
       unsubscribeTemp();
       unsubscribeReg();
+      unsubscribeSys();
     };
-  }, []);
+  }, []); 
 
-  // Simulate Sensor Data & Write to Firebase
-  useEffect(() => {
-    if (view === 'landing') return;
-
-    const interval = setInterval(async () => {
-      const now = new Date();
-      const formattedTime = now.toLocaleTimeString();
-      const timestamp = now.getTime();
-      
-      const tempBase = 150;
-      const newTemp = Math.random() > 0.9 ? 172 + Math.floor(Math.random() * 5) : tempBase + Math.floor(Math.random() * 15 - 7);
-      
-      try {
-        await addDoc(collection(db, 'temperatureLogs'), {
-          time: formattedTime, timestamp, temp: newTemp
-        });
-
-        const moisture = (5 + Math.random() - 0.5).toFixed(1);
-        const ph = (6.0 + (Math.random() * 0.4 - 0.2)).toFixed(1);
-        
-        await addDoc(collection(db, 'regulationLogs'), {
-          time: formattedTime, timestamp, moisture, ph, temp: newTemp
-        });
-      } catch (error) {
-        console.error("Firebase write error:", error);
-      }
-
-      if (progress < 100 && view === 'system') {
-        setProgress(p => {
-          const next = p + Math.floor(Math.random() * 15);
-          if (next >= 100 && !showSuccess) {
-            setShowSuccess(true);
-            return 100;
-          }
-          return next > 100 ? 100 : next;
-        });
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [view, progress]);
-
-  const renderView = () => {
+  // RENDER THE MAIN CONTENT AREA
+  const renderContent = () => {
     switch (view) {
-      case 'landing':
+      case 'home':
         return (
-          <div className="card" style={{ marginTop: '100px' }}>
-            <div className="icon">🌰</div>
-            <h1>CashewTrack</h1>
-            <p>Processing Condition Monitor</p>
-            <button className="btn" onClick={() => setView('dashboard')}>START</button>
+          /* FIX: Added margin and padding so the white card doesn't edge the screen */
+          <div className="card" style={{ textAlign: 'center', margin: '5vh 20px', padding: '30px', borderRadius: '12px' }}>
+            {/* FIX: Centered the picture/icon layout */}
+            <div className="icon" style={{ fontSize: '60px', display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>🌰</div>
+            <h1 style={{ marginBottom: '15px' }}>Welcome to CashewTrack</h1>
+            <p style={{fontSize: '18px', color: '#666', lineHeight: '1.6'}}>
+              Use the sidebar menu to navigate through the administrative dashboard.<br/><br/>
+              <b>Note:</b> You must manually start the monitoring views to see incoming live data from the Raspberry Pi.
+            </p>
           </div>
         );
-      case 'dashboard':
-        return (
-          <div className="card">
-            <h2>Dashboard Menu</h2>
-            <button className="btn" onClick={() => setView('temperature')}>🌡️ Monitor Temperature</button>
-            <button className="btn" onClick={() => setView('regulation')}>💧 Regulation Status</button>
-            <button className="btn" onClick={() => setView('system')}>⚙️ System Status</button>
-          </div>
-        );
+        
       case 'temperature':
         return (
-          <div className="card">
-            <h2>Temperature Logs</h2>
-            <table>
-              <thead><tr><th>Timestamp</th><th>Temperature (°C)</th></tr></thead>
-              <tbody>
-                {tempData.map((d, i) => (
-                  <tr key={i} className={d.temp > 170 ? 'danger-row' : ''}>
-                    <td>{d.time}</td>
-                    <td>{d.temp}°C</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button className="btn btn-secondary" style={{ marginTop: '20px' }} onClick={() => setView('dashboard')}>Back</button>
+          <div className="card" style={{ margin: '20px' }}>
+            <div className="header-controls">
+              <h2>🌡️ Temperature Monitoring</h2>
+              <button 
+                className={`btn ${isTempActive ? 'btn-danger' : ''}`}
+                onClick={() => setIsTempActive(!isTempActive)}
+              >
+                {isTempActive ? '⏹ Stop Viewing' : '▶ Start Viewing Live Data'}
+              </button>
+            </div>
+            
+            {!isTempActive && <p>Display paused. Press Start to view incoming sensor data from the Pi.</p>}
+            
+            {isTempActive && (
+              <table>
+                <thead><tr><th>Timestamp</th><th>Temperature (°C)</th></tr></thead>
+                <tbody>
+                  {tempData.map((d, i) => (
+                    <tr key={i} className={d.temp > 170 ? 'danger-row' : ''}>
+                      <td>{d.time}</td>
+                      <td>{d.temp}°C</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         );
+        
       case 'regulation':
         return (
-          <div className="card">
-            <h2>Moisture & pH Logs</h2>
-            <table>
-              <thead><tr><th>Time</th><th>Moisture</th><th>pH</th><th>Temp</th></tr></thead>
-              <tbody>
-                {regData.map((d, i) => (
-                  <tr key={i}>
-                    <td>{d.time}</td><td>{d.moisture}%</td><td>{d.ph}</td><td>{d.temp}°C</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button className="btn btn-secondary" style={{ marginTop: '20px' }} onClick={() => setView('dashboard')}>Back</button>
+          <div className="card" style={{ margin: '20px' }}>
+            <div className="header-controls">
+              <h2>💧 Regulation Status</h2>
+              <button 
+                className={`btn ${isRegActive ? 'btn-danger' : ''}`}
+                onClick={() => setIsRegActive(!isRegActive)}
+              >
+                {isRegActive ? '⏹ Stop Viewing' : '▶ Start Viewing Live Data'}
+              </button>
+            </div>
+            
+            {!isRegActive && <p>Display paused. Press Start to view incoming sensor data from the Pi.</p>}
+
+            {isRegActive && (
+              <table>
+                <thead><tr><th>Time</th><th>Moisture</th><th>pH</th><th>Temp</th></tr></thead>
+                <tbody>
+                  {regData.map((d, i) => (
+                    <tr key={i}>
+                      <td>{d.time}</td><td>{d.moisture}%</td><td>{d.ph}</td><td>{d.temp}°C</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         );
+        
       case 'system':
         return (
-          <div className="card">
-            <div className="icon">⚙️</div>
-            <h2>PROCESSING...</h2>
-            <h2>{progress}%</h2>
-            <div className="progress-container">
-              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+          <div className="card" style={{ margin: '20px' }}>
+            <div className="header-controls">
+              <h2>⚙️ System Status</h2>
+              <button 
+                className={`btn ${isSysActive ? 'btn-danger' : ''}`}
+                onClick={() => setIsSysActive(!isSysActive)}
+              >
+                {isSysActive ? '⏹ Stop Viewing' : '▶ View Live Progress'}
+              </button>
             </div>
-            <button className="btn btn-secondary" onClick={() => setView('dashboard')}>Back</button>
+            
+            {!isSysActive && <p>Display paused. Press Start to view the live extraction progress from the Pi.</p>}
+
+            {isSysActive && (
+              <>
+                <div style={{textAlign: 'center', margin: '40px 0'}}>
+                  <h1 style={{fontSize: '48px', margin: '0'}}>{progress}%</h1>
+                  <h3 style={{color: '#666'}}>
+                    {progress >= 100 ? 'COMPLETED' : 'PROCESSING...'}
+                  </h3>
+                </div>
+                
+                <div className="progress-container">
+                  <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                </div>
+              </>
+            )}
           </div>
         );
       default: return null;
@@ -148,25 +170,62 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {renderView()}
+    <div className="app-layout">
+      {/* SIDEBAR NAVIGATION - FIX: Added uniform green theme and centered alignment */}
+      <div className="sidebar" style={{ backgroundColor: '#2E7D32', borderRight: 'none' }}>
+        <div className="sidebar-header" style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            textAlign: 'center',
+            backgroundColor: '#2E7D32',
+            padding: '20px 10px',
+            color: 'white'
+          }}>
+          <div style={{fontSize: '50px', marginBottom: '10px'}}>🌰</div>
+          <h2 style={{ margin: '0', color: 'white' }}>CashewTrack</h2>
+          <span style={{fontSize: '12px', color: '#E8F5E9'}}>Admin Console</span>
+        </div>
+        
+        <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>
+          🏠 Dashboard Home
+        </button>
+        <button className={`nav-btn ${view === 'temperature' ? 'active' : ''}`} onClick={() => setView('temperature')}>
+          🌡️ Temperature
+        </button>
+        <button className={`nav-btn ${view === 'regulation' ? 'active' : ''}`} onClick={() => setView('regulation')}>
+          💧 Regulation Status
+        </button>
+        <button className={`nav-btn ${view === 'system' ? 'active' : ''}`} onClick={() => setView('system')}>
+          ⚙️ System Status
+        </button>
+      </div>
+
+      {/* MAIN CONTENT AREA */}
+      <div className="main-content" style={{ backgroundColor: '#F9F6F0', minHeight: '100vh' }}>
+        {renderContent()}
+      </div>
+
+      {/* WARNING MODAL */}
       {showWarning && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="icon">⚠️</div>
-            <h2 style={{color: 'red'}}>WARNING</h2>
-            <p>Machine error detected. High temperature.</p>
-            <button className="btn" style={{backgroundColor: '#F44336'}} onClick={() => setShowWarning(false)}>Close</button>
+            <h2 style={{color: 'red'}}>CRITICAL WARNING</h2>
+            <p>Machine error detected. Internal temperature exceeded 170°C threshold.</p>
+            <button className="btn btn-danger" style={{width: '100%'}} onClick={() => setShowWarning(false)}>Acknowledge</button>
           </div>
         </div>
       )}
+
+      {/* SUCCESS MODAL */}
       {showSuccess && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="icon">✅</div>
             <h2 style={{color: 'green'}}>CONGRATULATIONS</h2>
-            <p>Process finished successfully.</p>
-            <button className="btn" onClick={() => {setShowSuccess(false); setProgress(0);}}>Close</button>
+            <p>Extraction process finished successfully.</p>
+            <button className="btn" style={{width: '100%'}} onClick={() => setShowSuccess(false)}>Close</button>
           </div>
         </div>
       )}
