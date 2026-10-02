@@ -1,0 +1,17 @@
+/* Lato (latin), regular + bold, served locally */
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("lato-latin-400-normal.woff2") format("woff2"),
+       url("lato-latin-400-normal.woff") format("woff");
+}
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("lato-latin-700-normal.woff2") format("woff2"),
+       url("lato-latin-700-normal.woff") format("woff");
+}
