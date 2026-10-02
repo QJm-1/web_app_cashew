@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, addDoc } from 'firebase/firestore';
 import { db } from './firebase'; 
 import './index.css';
 
@@ -81,6 +81,20 @@ function App() {
       unsubscribeSys();
     };
   }, []); 
+
+  // FIREBASE HARDWARE CONTROLLER
+  const triggerRelay = async (channel, turnOn) => {
+    try {
+      await addDoc(collection(db, 'relayCommands'), {
+        ch: channel,
+        on: turnOn,
+        timestamp: new Date()
+      });
+      console.log(`Command sent to Channel ${channel}`);
+    } catch (error) {
+      console.error("Error sending command:", error);
+    }
+  };
 
   // RENDER THE MAIN CONTENT AREA
   const renderContent = () => {
@@ -190,6 +204,19 @@ function App() {
                 
                 <div className="progress-container">
                   <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                </div>
+
+                {/* MANUAL HARDWARE CONTROLS */}
+                <div style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  <h3 style={{ marginTop: 0, textAlign: 'center' }}>🛠️ Manual Hardware Controls</h3>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '15px' }}>
+                    <button className="btn" style={{backgroundColor: '#1976D2'}} onClick={() => triggerRelay(1, true)}>🔄 Mixer (Ch 1)</button>
+                    <button className="btn" style={{backgroundColor: '#388E3C'}} onClick={() => triggerRelay(2, true)}>⚗️ Lime (Ch 2)</button>
+                    <button className="btn" style={{backgroundColor: '#0288D1'}} onClick={() => triggerRelay(3, true)}>💧 Water (Ch 3)</button>
+                    <button className="btn" style={{backgroundColor: '#F57C00'}} onClick={() => triggerRelay(4, true)}>🔥 Heater (Ch 4)</button>
+                    <button className="btn" style={{backgroundColor: '#607D8B'}} onClick={() => triggerRelay(5, true)}>💨 Extractor (Ch 5)</button>
+                    <button className="btn btn-danger" onClick={() => triggerRelay("all", false)}>🛑 EMERGENCY STOP (ALL OFF)</button>
+                  </div>
                 </div>
               </>
             )}
